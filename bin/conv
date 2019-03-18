@@ -1,10 +1,21 @@
 #!/usr/bin/env node
+var path = require("path");
+process.env['NODE_CONFIG_DIR'] = path.join(__dirname, "..", "config");
+
 var spawn = require("child_process").spawn;
 var spawnSync = require("child_process").spawnSync;
 var fs = require('fs');
 var path = require("path");
 var rl = require("readline");
 var progress = require("progress");
+var config = require("config");
+
+var source_formats = config.get("source.mediaformat");
+var target_w = config.get("target.resolution.width");
+var target_h = config.get("target.resolution.height");
+var target_br = config.get("target.bitrate");
+var target_name_tail = config.get("target.filename_tail");
+var target_name_ext = config.get("target.mediaformat");		// file type to be converted
 
 if (process.argv.length !== 3) {
 	console.error(process.argv.length, process.argv);
@@ -19,9 +30,6 @@ if (arg === ".") {
 } else {
 	inputDir = arg;
 }
-var bitrate = 1100000;	// 1100k
-var target_name_tail = "_converted";
-var target_name_ext = "mp4";		// file type to be converted
 
 console.log("Media file repository:", inputDir);
 var files = fs.readdirSync(inputDir);
@@ -31,8 +39,9 @@ for (var i = 0; i < files.length; i ++) {
 		var meta = getVideoMeta(files[i]);
 		var filename = path.join(inputDir, files[i]);
 		var duration = meta.duration * 1000000;
+		var bitrate = meta.bit_rate;	// TODO: don't convert video with less than target.bitrate
 		var convres = false;
-		if (meta.width > 1280 && meta.height > 720) {
+		if (meta.width > target_w && meta.height > target_h) {
 			convres = true;
 		}
 		var file = {filename: filename, duration: duration, convres: convres};
@@ -66,9 +75,9 @@ function processVideo(file, duration, convres, cb) {
 	namearr[namearr.length -1] = target_name_ext;
 	var output = namearr.join(".");
 	if (convres) {
-		options = ["-i", file, "-vf", "scale=1280:720", "-b:v", "1100k", "-progress", "-", output];
+		options = ["-i", file, "-vf", "scale=" + target_w + ":" + target_h, "-b:v", target_br, "-progress", "-", output];
 	} else {
-		options = ["-i", file, "-b:v", "1100k", "-progress", "-", output];
+		options = ["-i", file, "-b:v", target_br, "-progress", "-", output];
 	}
 
 	if (fs.existsSync(output)) {
@@ -118,7 +127,7 @@ function processVideo(file, duration, convres, cb) {
 
 function isMediaFile(name) {
 	var ret = false;
-	var extList = ["mp4", "wmv", "avi", "mkv", "mov"];
+	var extList = source_formats;
 	// .toUpperCase()
 	var nameSplit = name.split(".");
 	var extension = nameSplit[nameSplit.length -1];
@@ -144,3 +153,16 @@ function runSeries(fileMetaList, cb){
 	runNext();
 };
 
+function msToTime(duration) {
+	duration = duration / 1000;
+	var milliseconds = parseInt((duration%1000)/100)
+		, seconds = parseInt((duration/1000)%60)
+		, minutes = parseInt((duration/(1000*60))%60)
+		, hours = parseInt((duration/(1000*60*60))%24);
+
+	hours = (hours < 10) ? "0" + hours : hours;
+	minutes = (minutes < 10) ? "0" + minutes : minutes;
+	seconds = (seconds < 10) ? "0" + seconds : seconds;
+
+	return hours + ":" + minutes + ":" + seconds + "." + milliseconds;
+}

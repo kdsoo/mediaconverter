@@ -6,6 +6,7 @@
     "start": "node ./bin/conv"
   },
   "dependencies": {
-    "progress": "*"
+    "progress": "*",
+    "config": "*"
   }
 }

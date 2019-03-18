@@ -1,0 +1,14 @@
+{
+	"target": {
+		"resolution": {
+			"width": 1280,
+			"height": 720
+		},
+		"bitrate": 1100000,
+		"filename_tail": "_converted",
+		"mediaformat": "mp4"
+	},
+	"source": {
+		"mediaformat": ["mp4", "wmv", "avi", "mkv", "mov"]
+	}
+}
