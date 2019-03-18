@@ -1,0 +1,146 @@
+#!/usr/bin/env node
+var spawn = require("child_process").spawn;
+var spawnSync = require("child_process").spawnSync;
+var fs = require('fs');
+var path = require("path");
+var rl = require("readline");
+var progress = require("progress");
+
+if (process.argv.length !== 3) {
+	console.error(process.argv.length, process.argv);
+	process.exit(1)
+}
+var arg = process.argv[2]
+var inputDir;
+var fileList = [];
+var totalFiles = 0;
+if (arg === ".") {
+	inputDir = process.cwd();
+} else {
+	inputDir = arg;
+}
+var bitrate = 1100000;	// 1100k
+var target_name_tail = "_converted";
+var target_name_ext = "mp4";		// file type to be converted
+
+console.log("Media file repository:", inputDir);
+var files = fs.readdirSync(inputDir);
+for (var i = 0; i < files.length; i ++) {
+	if (isMediaFile(files[i])) {
+		// var file = {filename:filename, duration: duration, convres: convres};
+		var meta = getVideoMeta(files[i]);
+		var filename = path.join(inputDir, files[i]);
+		var duration = meta.duration * 1000000;
+		var convres = false;
+		if (meta.width > 1280 && meta.height > 720) {
+			convres = true;
+		}
+		var file = {filename: filename, duration: duration, convres: convres};
+		fileList.push(file);
+		++totalFiles;
+	}
+}
+console.log("Media files to be converted:", fileList);
+
+if (fileList.length > 0) {
+	runSeries(fileList, function(err) {
+		if (err) {
+			console.error(err);
+		}
+	});
+}
+
+function getVideoMeta(file, cb) {
+	var options = ["-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height,bit_rate,duration", "-of", "json", file];
+	var getres = spawnSync("ffprobe", options);
+	var meta = getres.stdout.toString();
+	meta = JSON.parse(meta);
+	meta = meta.streams[0];
+	return meta;
+}
+
+function processVideo(file, duration, convres, cb) {
+	var options;
+	var namearr = file.split(".");
+	namearr[namearr.length -2] = namearr[namearr.length - 2] + target_name_tail;
+	namearr[namearr.length -1] = target_name_ext;
+	var output = namearr.join(".");
+	if (convres) {
+		options = ["-i", file, "-vf", "scale=1280:720", "-b:v", "1100k", "-progress", "-", output];
+	} else {
+		options = ["-i", file, "-b:v", "1100k", "-progress", "-", output];
+	}
+
+	if (fs.existsSync(output)) {
+		console.error(output, "already exists. Removing it");
+		fs.unlinkSync(output);
+	}
+
+	var conv = spawn("ffmpeg", options);
+	var progressTotal = 100;
+	var barTick = 0;
+	var bar = new progress('  :title [:bar] :percent :etas', {
+		complete: '=', incomplete: ' ', width: 100, total: progressTotal
+	});
+	var line = rl.createInterface({input: conv.stdout});
+	line.on("line", function(l) {
+		if (l.search("out_time_ms=") > -1) {
+			var out_time_ms = Number(l.split("=")[1]);
+			while (barTick/progressTotal < out_time_ms/duration) {
+				bar.tick(1, {title: file});
+				++barTick;
+			}
+		}
+	});
+
+	conv.stderr.on("data", function(data) {
+		// console.error("convert error:", data.toString());
+	});
+	conv.stdout.on("data", function(data) {
+		//console.log("convert data:", data.toString());
+		// out_time_ms=15046531 => out_time = out_time_ms/1000000
+		// elapsed time % = (out_time / duration) * 100
+	});
+	conv.stdout.on("end", function() {
+	});
+	conv.on('exit', function(code){
+		line.close();
+		console.log(file, "conversion done with:", code);
+		--totalFiles;
+		if (totalFiles == 0) {
+			console.log("#############################################");
+			console.log("All files converted");
+			console.log("#############################################");
+		}
+		if (cb) cb(true);
+	});
+}
+
+function isMediaFile(name) {
+	var ret = false;
+	var extList = ["mp4", "wmv", "avi", "mkv", "mov"];
+	// .toUpperCase()
+	var nameSplit = name.split(".");
+	var extension = nameSplit[nameSplit.length -1];
+	if (extList.indexOf(extension.toLowerCase()) > -1) {
+		ret = true;
+	}
+	if (name.includes(target_name_tail + "." + target_name_ext)) {
+		ret = false;
+	};
+	return ret;
+}
+
+function runSeries(fileMetaList, cb){
+	var runNext = function(){
+		var file = fileMetaList.shift();
+		processVideo(file.filename, file.duration, file.convres, function(ret){
+			if (ret) {
+				if (fileMetaList.length) runNext();
+				else cb(null);
+			}
+		});
+	};
+	runNext();
+};
+

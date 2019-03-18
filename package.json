@@ -1,0 +1,11 @@
+{
+  "name": "mediaconverter",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "start": "node ./bin/conv"
+  },
+  "dependencies": {
+    "progress": "*"
+  }
+}
