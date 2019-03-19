@@ -12,3 +12,4 @@ default.json
 *.loc
 *.server
 package-lock.json
+.version

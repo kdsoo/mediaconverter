@@ -18,6 +18,7 @@ var rl = require("readline");
 var progress = require("progress");
 var config = require("config");
 
+var cachedVersionFile = path.join(__dirname, "..", ".version");
 // check version upgrade
 updateVersion();
 
@@ -262,33 +263,88 @@ function needUpdate(remote_tag) {
 }
 
 function updateVersion() {
-	getReleaseMeta(releaseUrl, function(code, meta) {
-		if (code === 200) {
-			if (needUpdate(meta.tag_name)) {
-				gitCheckout("master", function(code, data) {
-					if (code === 0) {
-						gitPull(function(code, ret) {
-							console.log("git pull ended with:", code, ret);
-							if (code === 0) {
-								gitCheckout(meta.tag_name, function(code, data) {
-									console.log("git checkout to", meta.tag_name
+	if (isVersionCacheExpired()) {
+		getReleaseMeta(releaseUrl, function(code, meta) {
+			if (code === 200) {
+				if (needUpdate(meta.tag_name)) {
+					gitCheckout("master", function(code, data) {
+						if (code === 0) {
+							gitPull(function(code, ret) {
+								console.log("git pull ended with:", code, ret);
+								if (code === 0) {
+									gitCheckout(meta.tag_name, function(code, data) {
+										console.log("git checkout to", meta.tag_name
 												, "ended with", code);
+											process.exit();
+									});
+								} else {
+									console.error("git pull error:", code);
 									process.exit();
-								});
-							} else {
-								console.error("git pull error:", code);
-								process.exit();
-							}
-						});
-					} else {
-						console.error("git checkout master failed with", code);
-						process.exit();
-					}
-				});
+								}
+							});
+						} else {
+							console.error("git checkout master failed with", code);
+							process.exit();
+						}
+					});
+				}
+			} else {
+				console.error(code, "get meta error");
 			}
-		} else {
-			console.error(code, "get meta error");
-		}
-	});
+		});
+	} else {
+		var version = fs.readFileSync(cachedVersionFile);
+		version = version.toString().trim();
+		console.log("Using cached version", version);
+	}
 }
 
+// version caching
+function getFileUpdateDate(path) {
+	var stats = "";
+	if (fs.existsSync(path)) {
+		stats = fs.statSync(path);
+	} else {
+		var version = getCurrentVersion();
+		updateVersionFile(path, version);
+		stats = fs.statSync(path);
+	}
+	return stats.mtime
+}
+function timeDiff(old) {
+	var difference = new Date().getTime() - old.getTime();
+
+	var days = Math.floor(difference/1000/60/60/24);
+	difference -= days * 1000 * 60 * 60 * 24;
+
+	var hours = Math.floor(difference/1000/60/60);
+	difference -= hours * 1000 * 60 * 60
+
+	var minutes = Math.floor(difference/1000/60);
+	difference -= minutes * 1000 * 60
+
+	var seconds = Math.floor(difference/1000);
+	var ret = {d: days, h: hours, m: minutes, s: seconds};
+	return ret;
+}
+
+function updateVersionFile(file, version) {
+	try {
+		var saved = fs.writeFileSync(file, version);
+		console.log("version", version, "saved");
+	} catch(e) {
+		console.error(e);
+		process.exit();
+	}
+}
+
+function isVersionCacheExpired() {
+	var expired = false;
+	var cached = getFileUpdateDate(cachedVersionFile);
+	var timediff = timeDiff(cached);
+	if (timediff.d > 0) {
+		expired = true;
+		console.log("Cached version file expired");
+	}
+	return expired;
+}
