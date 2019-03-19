@@ -43,10 +43,17 @@ for (var i = 0; i < files.length; i ++) {
 		var convres = false;
 		if (meta.width > target_w && meta.height > target_h) {
 			convres = true;
+			var file = {filename: filename, duration: duration, convres: convres};
+			fileList.push(file);
+			++totalFiles;
+		} else if (bitrate > target_br * 1.5) {
+			var file = {filename: filename, duration: duration, convres: convres};
+			fileList.push(file);
+			++totalFiles;
+		} else {
+			console.error(filename, "with resolution", meta.width, meta.height
+				, "and bitrate", bitrate, "no need to be converted");
 		}
-		var file = {filename: filename, duration: duration, convres: convres};
-		fileList.push(file);
-		++totalFiles;
 	}
 }
 console.log("Media files to be converted:", fileList);
