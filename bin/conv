@@ -148,16 +148,18 @@ function processVideo(file, duration, convres, cb) {
 
 function isMediaFile(name) {
 	var ret = false;
-	var extList = source_formats;
-	// .toUpperCase()
-	var nameSplit = name.split(".");
-	var extension = nameSplit[nameSplit.length -1];
-	if (extList.indexOf(extension.toLowerCase()) > -1) {
-		ret = true;
+	if (fs.lstatSync(path.join(inputDir, name)).isFile()) {
+		var extList = source_formats;
+		// .toUpperCase()
+		var nameSplit = name.split(".");
+		var extension = nameSplit[nameSplit.length -1];
+		if (extList.indexOf(extension.toLowerCase()) > -1) {
+			ret = true;
+		}
+		if (name.includes(target_name_tail + "." + target_name_ext)) {
+			ret = false;
+		}
 	}
-	if (name.includes(target_name_tail + "." + target_name_ext)) {
-		ret = false;
-	};
 	return ret;
 }
 
