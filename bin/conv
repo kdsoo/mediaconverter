@@ -79,12 +79,14 @@ if (fileList.length > 0) {
 }
 
 function getVideoMeta(file, cb) {
-	var options = ["-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height,bit_rate,duration", "-of", "json", file];
+	var options = ["-v", "error", "-show_format", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "json", file];
 	var getres = spawnSync("ffprobe", options);
 	var meta = getres.stdout.toString();
 	meta = JSON.parse(meta);
-	meta = meta.streams[0];
-	return meta;
+	var json = meta.streams[0];
+	json.duration = meta.format.duration;
+	json.bit_rate = meta.format.bit_rate;
+	return json;
 }
 
 function processVideo(file, duration, convres, cb) {
