@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 var path = require("path");
 process.env['NODE_CONFIG_DIR'] = path.join(__dirname, "..", "config");
+var gitdir = path.join(__dirname, "..", ".git");
 
 var http = require("https");
 var releaseUrl = {
@@ -187,7 +188,7 @@ function msToTime(duration) {
 
 
 function gitPull(callback) {
-	var child = spawn('git', ['pull']);
+	var child = spawn('git', ['--git-dir', gitdir, 'pull']);
 	var log = ""
 	child.stderr.on('data', function(data) {
 		console.log('err data: ' + data);
@@ -205,7 +206,7 @@ function gitPull(callback) {
 };
 
 function gitCheckout(head, callback) {
-	var child = spawn('git', ['checkout', head]);
+	var child = spawn('git', ['--git-dir', gitdir, 'checkout', head]);
 	var log = "";
 
 	child.stderr.on('data', function(data) {
@@ -241,7 +242,7 @@ function getReleaseMeta(url, cb) {
 }
 
 function getCurrentVersion() {
-	var getTag = spawnSync("git", ["describe", "--tags", "--abbrev=0"]);
+	var getTag = spawnSync("git", ["--git-dir", gitdir, "describe", "--tags", "--abbrev=0"]);
 	var tag = getTag.stdout.toString().trim();
 	return tag;
 }
@@ -252,14 +253,13 @@ function needUpdate(remote_tag) {
 	if (remote_tag !== tag) {
 		needUpdate = true;
 	} else console.log("Your mediaconverter is up to date");
+	console.log("need update?", needUpdate, "(", remote_tag, ",", tag, ")");
 	return needUpdate;
 }
 
 function updateVersion() {
 	getReleaseMeta(releaseUrl, function(code, meta) {
 		if (code === 200) {
-			console.log(meta.tag_name);
-			console.log("need update?", needUpdate(meta.tag_name));
 			if (needUpdate(meta.tag_name)) {
 				gitCheckout("master", function(code, data) {
 					if (code === 0) {
