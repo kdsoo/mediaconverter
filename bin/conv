@@ -2,6 +2,9 @@
 var path = require("path");
 process.env['NODE_CONFIG_DIR'] = path.join(__dirname, "..", "config");
 
+var http = require("https");
+var releaseUrl = "https://api.github.com/repos/kdsoo/mediaconverter/releases/latest";
+
 var spawn = require("child_process").spawn;
 var spawnSync = require("child_process").spawnSync;
 var fs = require('fs');
@@ -9,6 +12,10 @@ var path = require("path");
 var rl = require("readline");
 var progress = require("progress");
 var config = require("config");
+
+// check version upgrade
+updateVersion();
+
 
 var source_formats = config.get("source.mediaformat");
 var target_w = config.get("target.resolution.width");
@@ -173,3 +180,108 @@ function msToTime(duration) {
 
 	return hours + ":" + minutes + ":" + seconds + "." + milliseconds;
 }
+
+
+function gitPull(callback) {
+	var child = spawn('git', ['pull']);
+	var log = ""
+	child.stderr.on('data', function(data) {
+		console.log('err data: ' + data);
+	});
+
+	child.stdout.on('data', function(data) {
+		log += data;
+		console.log('stdout: ' + data);
+	});
+	child.on('exit', function(code){
+		console.log('exit: ' + code);
+		callback(code, log);
+	});
+
+};
+
+function gitCheckout(head, callback) {
+	var child = spawn('git', ['checkout', head]);
+	var log = "";
+
+	child.stderr.on('data', function(data) {
+		//console.log('err data: ' + data);
+	});
+
+	child.stdout.on('data', function(data) {
+		log += data;
+		console.log('stdout: ' + data);
+	});
+	child.on('exit', function(code){
+		callback(code, log);
+	});
+};
+
+function getReleaseMeta(url, cb) {
+	var req = http.get(url, function(res) {
+		console.log('statusCode:', res.statusCode);
+		var json = "";
+
+		res.on("data", function(data) {
+			json += data;
+		});
+		res.on("end", function(){
+			try {
+				json = JSON.parse(json);
+			} catch(e) {
+				console.error(e);
+			}
+			cb(res.statusCode, json);
+		});
+	});
+}
+
+function getCurrentVersion() {
+	var getTag = spawnSync("git", ["describe", "--tags", "--abbrev=0"]);
+	var tag = getTag.stdout.toString().trim();
+	return tag;
+}
+
+function needUpdate(remote_tag) {
+	var needUpdate = false;
+	var tag = getCurrentVersion();
+	if (remote_tag !== tag) {
+		needUpdate = true;
+	} else console.log("Your mediaconverter is up to date");
+	return needUpdate;
+}
+
+function updateVersion() {
+	getReleaseMeta(releaseUrl, function(code, meta) {
+		if (code === 200) {
+			console.log(meta.tag_name);
+			console.log("need update?", needUpdate(meta.tag_name));
+			if (needUpdate(meta.tag_name)) {
+				gitCheckout("master", function(code, data) {
+					if (code === 0) {
+						gitPull(function(code, ret) {
+							console.log("git pull ended with:", code, ret);
+							if (code === 0) {
+								gitCheckout(meta.tag_name, function(code, data) {
+									console.log("git checkout to", meta.tag_name
+												, "ended with", code);
+									process.exit();
+								});
+							} else {
+								console.error("git pull error:", code);
+								process.exit();
+							}
+						});
+					} else {
+						console.error("git checkout master failed with", code);
+						process.exit();
+					}
+				});
+			}
+		} else {
+			console.error(code, "get meta error");
+			process.exit();
+		}
+	});
+}
+
