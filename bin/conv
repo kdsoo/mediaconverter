@@ -284,7 +284,6 @@ function updateVersion() {
 			}
 		} else {
 			console.error(code, "get meta error");
-			process.exit();
 		}
 	});
 }
