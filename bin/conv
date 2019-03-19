@@ -3,7 +3,11 @@ var path = require("path");
 process.env['NODE_CONFIG_DIR'] = path.join(__dirname, "..", "config");
 
 var http = require("https");
-var releaseUrl = "https://api.github.com/repos/kdsoo/mediaconverter/releases/latest";
+var releaseUrl = {
+  hostname: 'api.github.com',
+	path: '/repos/kdsoo/mediaconverter/releases/latest',
+  headers: { 'User-Agent': 'Mozilla/5.0' }
+};
 
 var spawn = require("child_process").spawn;
 var spawnSync = require("child_process").spawnSync;
