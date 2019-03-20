@@ -2,6 +2,7 @@
 var path = require("path");
 process.env['NODE_CONFIG_DIR'] = path.join(__dirname, "..", "config");
 var gitdir = path.join(__dirname, "..", ".git");
+var gitworktree = path.join(__dirname, "..");
 
 var http = require("https");
 var releaseUrl = {
@@ -253,7 +254,7 @@ function msToTime(duration) {
 
 
 function gitPull(callback) {
-	var child = spawn('git', ['--git-dir', gitdir, 'pull']);
+	var child = spawn('git', ['--git-dir', gitdir, "--work-tree", gitworktree, 'pull']);
 	var log = ""
 	child.stderr.on('data', function(data) {
 		console.log('err data: ' + data);
@@ -271,7 +272,7 @@ function gitPull(callback) {
 };
 
 function gitCheckout(head, callback) {
-	var child = spawn('git', ['--git-dir', gitdir, 'checkout', head]);
+	var child = spawn('git', ['--git-dir', gitdir, "--work-tree", gitworktree, 'checkout', head]);
 	var log = "";
 
 	child.stderr.on('data', function(data) {
@@ -307,7 +308,7 @@ function getReleaseMeta(url, cb) {
 }
 
 function getCurrentVersion() {
-	var getTag = spawnSync("git", ["--git-dir", gitdir, "describe", "--tags", "--abbrev=0"]);
+	var getTag = spawnSync("git", ["--git-dir", gitdir, "--work-tree", gitworktree, "describe", "--tags", "--abbrev=0"]);
 	var tag = getTag.stdout.toString().trim();
 	return tag;
 }
