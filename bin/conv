@@ -126,8 +126,6 @@ function getVideoMeta(file, cb) {
 	var getres = spawnSync("ffprobe", options);
 	var meta = getres.stdout.toString();
 	meta = JSON.parse(meta);
-	console.log("getVideoMeta", file);
-	console.log(meta);
 	var json = meta.streams[0];
 	json.duration = meta.format.duration;
 	json.bit_rate = meta.format.bit_rate;
