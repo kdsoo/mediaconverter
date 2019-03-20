@@ -38,19 +38,59 @@ var arg = process.argv[2]
 var inputDir;
 var fileList = [];
 var totalFiles = 0;
-if (arg === ".") {
-	inputDir = process.cwd();
+
+// if arg is relative then make it absolute
+// now arg is absolute
+if (!path.isAbsolute(arg)) {
+	// if arg is file then inputDir is cwd and arg is file
+	if (fs.lstatSync(path.join(process.cwd(), arg)).isFile()) {
+		inputDir = process.cwd();
+	} else {
+		inputDir = path.join(process.cwd(), arg);
+	}
 } else {
-	inputDir = arg;
+	// if arg is file then inputDir is parent and arg is file
+	// else arg is inputDir
+	if (fs.lstatSync(arg).isFile()) {
+		inputDir = path.dirname(arg);
+		arg = path.basename(arg);
+	} else {
+		inputDir = arg;
+	}
 }
 
 console.log("Media file repository:", inputDir);
-var files = fs.readdirSync(inputDir);
-for (var i = 0; i < files.length; i ++) {
-	if (isMediaFile(files[i])) {
+if (!fs.lstatSync(inputDir).isFile()) {
+	var files = fs.readdirSync(inputDir);
+	for (var i = 0; i < files.length; i ++) {
+		if (isMediaFile(files[i])) {
+			// var file = {filename:filename, duration: duration, convres: convres};
+			var meta = getVideoMeta(path.join(inputDir, files[i]));
+			var filename = path.join(inputDir, files[i]);
+			var duration = meta.duration * 1000000;
+			var bitrate = meta.bit_rate;	// TODO: don't convert video with less than target.bitrate
+			var convres = false;
+			if (meta.width > target_w && meta.height > target_h) {
+				convres = true;
+				var file = {filename: filename, duration: duration, convres: convres};
+				fileList.push(file);
+				++totalFiles;
+			} else if (bitrate > target_br * 1.5) {
+				var file = {filename: filename, duration: duration, convres: convres};
+				fileList.push(file);
+				++totalFiles;
+			} else {
+				console.error(filename, "with resolution", meta.width, meta.height
+					, "and bitrate", bitrate, "no need to be converted");
+			}
+		}
+	}
+	console.log("Media files to be converted:", fileList);
+} else {
+	if (isMediaFile(arg)) {
 		// var file = {filename:filename, duration: duration, convres: convres};
-		var meta = getVideoMeta(files[i]);
-		var filename = path.join(inputDir, files[i]);
+		var filename = path.join(inputDir, arg);
+		var meta = getVideoMeta(filename);
 		var duration = meta.duration * 1000000;
 		var bitrate = meta.bit_rate;	// TODO: don't convert video with less than target.bitrate
 		var convres = false;
@@ -67,9 +107,11 @@ for (var i = 0; i < files.length; i ++) {
 			console.error(filename, "with resolution", meta.width, meta.height
 				, "and bitrate", bitrate, "no need to be converted");
 		}
+	} else {
+		console.error("Not proper to be converted");
+		process.exit();
 	}
 }
-console.log("Media files to be converted:", fileList);
 
 if (fileList.length > 0) {
 	runSeries(fileList, function(err) {
@@ -84,6 +126,8 @@ function getVideoMeta(file, cb) {
 	var getres = spawnSync("ffprobe", options);
 	var meta = getres.stdout.toString();
 	meta = JSON.parse(meta);
+	console.log("getVideoMeta", file);
+	console.log(meta);
 	var json = meta.streams[0];
 	json.duration = meta.format.duration;
 	json.bit_rate = meta.format.bit_rate;
