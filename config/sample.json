@@ -10,5 +10,6 @@
 	},
 	"source": {
 		"mediaformat": ["mp4", "wmv", "avi", "mkv", "mov"]
-	}
+	},
+	"removeoriginal": false
 }
