@@ -178,7 +178,12 @@ function processVideo(file, duration, convres, cb) {
 	});
 	conv.on('exit', function(code){
 		line.close();
-		console.log(file, "conversion done with:", code);
+		console.log("\n", file, "conversion done with:", code);
+		if (code === 0) {
+			removeOriginal(file);
+		} else {
+			console.error(file, "conversion aborted with error code:", code);
+		}
 		--totalFiles;
 		if (totalFiles == 0) {
 			console.log("#############################################");
@@ -204,6 +209,16 @@ function isMediaFile(name) {
 		}
 	}
 	return ret;
+}
+
+function removeOriginal(name) {
+	try {
+		fs.unlinkSync(name);
+	} catch(e) {
+		console.error("Error removing", name);
+		console.error(e);
+	}
+	console.log(name, "removed successfully");
 }
 
 function runSeries(fileMetaList, cb){
