@@ -365,7 +365,7 @@ function needUpdate(remote_tag) {
 }
 
 function updateVersion() {
-	if (isVersionCacheExpired()) {
+	if (isVersionCacheExpired() || !fx.existsSync(cachedVersionFile)) {
 		getReleaseMeta(releaseUrl, function(code, meta) {
 			if (code === 200) {
 				if (needUpdate(meta.tag_name)) {
