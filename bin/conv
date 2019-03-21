@@ -27,6 +27,7 @@ updateVersion();
 var source_formats = config.get("source.mediaformat");
 var target_w = config.get("target.resolution.width");
 var target_h = config.get("target.resolution.height");
+var target_max_length = config.get("target.max_side_length");
 var target_br = config.get("target.bitrate");
 var target_name_tail = config.get("target.filename_tail");
 var target_name_ext = config.get("target.mediaformat");		// file type to be converted
@@ -72,18 +73,57 @@ if (!fs.lstatSync(inputDir).isFile()) {
 			var duration = meta.duration * 1000000;
 			var bitrate = meta.bit_rate;	// TODO: don't convert video with less than target.bitrate
 			var convres = false;
-			if (meta.width > target_w && meta.height > target_h) {
-				convres = true;
-				var file = {filename: filename, duration: duration, convres: convres};
-				fileList.push(file);
-				++totalFiles;
-			} else if (bitrate > target_br * 1.5) {
-				var file = {filename: filename, duration: duration, convres: convres};
-				fileList.push(file);
-				++totalFiles;
+			// if target_max_length is set
+			// then if meta.width > meta.height
+			//         then target_res_width = target_max_length
+			//      else target_res_height = target_max_length
+			// else target_res_width = target_w and target_res_height = target_h
+			if (target_max_length) {
+				if (meta.width > meta.height) {
+					if (meta.width > target_max_length) {
+						convres = true;
+						var file = {filename: filename, res: {w: target_max_length, h: -1}, duration: duration, convres: convres};
+						fileList.push(file);
+						++totalFiles;
+					} else if (bitrate > target_br * 1.5) {
+						// only cares bitrate (convres = false)
+						var file = {filename: filename, res: {w: -1, h: -1}, duration: duration, convres: convres};
+						fileList.push(file);
+						++totalFiles;
+					} else {
+						console.error(filename, "with resolution", meta.width, meta.height
+						, "and bitrate", bitrate, "no need to be converted");
+					}
+				} else {
+					if (meta.height > target_max_length) {
+						convres = true;
+						var file = {filename: filename, res: {w: -1, h: target_max_length}, duration: duration, convres: convres};
+						fileList.push(file);
+						++totalFiles;
+					} else if (bitrate > target_br * 1.5) {
+						// only cares bitrate (convres = false)
+						var file = {filename: filename, res: {w: -1, h: -1}, duration: duration, convres: convres};
+						fileList.push(file);
+						++totalFiles;
+					} else {
+						console.error(filename, "with resolution", meta.width, meta.height
+						, "and bitrate", bitrate, "no need to be converted");
+					}
+				}
 			} else {
-				console.error(filename, "with resolution", meta.width, meta.height
-					, "and bitrate", bitrate, "no need to be converted");
+				if (meta.width > target_w && meta.height > target_h) {
+					convres = true;
+					var file = {filename: filename, res: {w: target_w, h: target_h}, duration: duration, convres: convres};
+					fileList.push(file);
+					++totalFiles;
+				} else if (bitrate > target_br * 1.5) {
+					var file = {filename: filename, res: {w: target_w, h: target_h}, duration: duration, convres: convres};
+					fileList.push(file);
+					++totalFiles;
+				} else {
+					console.error(filename, "with resolution", meta.width, meta.height
+						, "and bitrate", bitrate, "no need to be converted");
+				}
 			}
 		}
 	}
@@ -134,14 +174,14 @@ function getVideoMeta(file, cb) {
 	return json;
 }
 
-function processVideo(file, duration, convres, cb) {
+function processVideo(file, w, h, duration, convres, cb) {
 	var options;
 	var namearr = file.split(".");
 	namearr[namearr.length -2] = namearr[namearr.length - 2] + target_name_tail;
 	namearr[namearr.length -1] = target_name_ext;
 	var output = namearr.join(".");
 	if (convres) {
-		options = ["-i", file, "-vf", "scale=" + target_w + ":" + target_h, "-b:v", target_br, "-progress", "-", output];
+		options = ["-i", file, "-vf", "scale=" + w + ":" + h, "-b:v", target_br, "-progress", "-", output];
 	} else {
 		options = ["-i", file, "-b:v", target_br, "-progress", "-", output];
 	}
@@ -152,6 +192,7 @@ function processVideo(file, duration, convres, cb) {
 	}
 
 	var conv = spawn("ffmpeg", options);
+	console.log("Start converting", file, "with", options.toString());
 	var progressTotal = 100;
 	var barTick = 0;
 	var bar = new progress('  :title [:bar] :percent :etas', {
@@ -228,7 +269,7 @@ function removeOriginal(name) {
 function runSeries(fileMetaList, cb){
 	var runNext = function(){
 		var file = fileMetaList.shift();
-		processVideo(file.filename, file.duration, file.convres, function(ret){
+		processVideo(file.filename, file.res.w, file.res.h, file.duration, file.convres, function(ret){
 			if (ret) {
 				if (fileMetaList.length) runNext();
 				else cb(null);
@@ -348,6 +389,10 @@ function updateVersion() {
 							process.exit();
 						}
 					});
+				} else {
+					// No need to update but refresh version file
+					var version = getCurrentVersion();
+					updateVersionFile(cachedVersionFile, version);
 				}
 			} else {
 				console.error(code, "get meta error");
