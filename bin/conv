@@ -365,7 +365,7 @@ function needUpdate(remote_tag) {
 }
 
 function updateVersion() {
-	if (isVersionCacheExpired() || !fs.existsSync(cachedVersionFile)) {
+	if (isVersionCacheExpired()) {
 		getReleaseMeta(releaseUrl, function(code, meta) {
 			if (code === 200) {
 				if (needUpdate(meta.tag_name)) {
@@ -408,14 +408,12 @@ function updateVersion() {
 // version caching
 function getFileUpdateDate(path) {
 	var stats = "";
+	var ret = false;
 	if (fs.existsSync(path)) {
 		stats = fs.statSync(path);
-	} else {
-		var version = getCurrentVersion();
-		updateVersionFile(path, version);
-		stats = fs.statSync(path);
+		ret  stats.mtime;
 	}
-	return stats.mtime
+	return ret;
 }
 function timeDiff(old) {
 	var difference = new Date().getTime() - old.getTime();
@@ -447,10 +445,15 @@ function updateVersionFile(file, version) {
 function isVersionCacheExpired() {
 	var expired = false;
 	var cached = getFileUpdateDate(cachedVersionFile);
-	var timediff = timeDiff(cached);
-	if (timediff.d > 0) {
+	if (cached !== false) {
+		var timediff = timeDiff(cached);
+		if (timediff.d > 0) {
+			expired = true;
+			console.log("Cached version file expired");
+		}
+	} else {
 		expired = true;
-		console.log("Cached version file expired");
 	}
+
 	return expired;
 }
