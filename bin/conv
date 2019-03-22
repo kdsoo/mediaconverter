@@ -72,6 +72,8 @@ if (!fs.lstatSync(inputDir).isFile()) {
 			var duration = meta.duration * 1000000;
 			var bitrate = meta.bit_rate;	// TODO: don't convert video with less than target.bitrate
 			var convres = false;
+			var file = {filename: filename, res: {w: -1, h: -1}
+						, duration: duration, orig: {w:meta.width, h: meta.height}, convres: convres};
 			// if target_max_length is set
 			// then if meta.width > meta.height
 			//         then target_res_width = target_max_length
@@ -80,13 +82,12 @@ if (!fs.lstatSync(inputDir).isFile()) {
 			if (target_max_length) {
 				if (meta.width > meta.height) {
 					if (meta.width > target_max_length) {
-						convres = true;
-						var file = {filename: filename, res: {w: target_max_length, h: -1}, duration: duration, convres: convres};
+						file.res.w = target_max_length;
+						file.convres = true;
 						fileList.push(file);
 						++totalFiles;
 					} else if (bitrate > target_br * 1.5) {
 						// only cares bitrate (convres = false)
-						var file = {filename: filename, res: {w: -1, h: -1}, duration: duration, convres: convres};
 						fileList.push(file);
 						++totalFiles;
 					} else {
@@ -95,13 +96,12 @@ if (!fs.lstatSync(inputDir).isFile()) {
 					}
 				} else {
 					if (meta.height > target_max_length) {
-						convres = true;
-						var file = {filename: filename, res: {w: -1, h: target_max_length}, duration: duration, convres: convres};
+						file.res.h = target_max_length;
+						file.convres = true;
 						fileList.push(file);
 						++totalFiles;
 					} else if (bitrate > target_br * 1.5) {
 						// only cares bitrate (convres = false)
-						var file = {filename: filename, res: {w: -1, h: -1}, duration: duration, convres: convres};
 						fileList.push(file);
 						++totalFiles;
 					} else {
@@ -111,12 +111,12 @@ if (!fs.lstatSync(inputDir).isFile()) {
 				}
 			} else {
 				if (meta.width > target_w && meta.height > target_h) {
-					convres = true;
-					var file = {filename: filename, res: {w: target_w, h: target_h}, duration: duration, convres: convres};
+					file.res.w = target_w;
+					file.res.h = target_h;
+					file.convres = true;
 					fileList.push(file);
 					++totalFiles;
 				} else if (bitrate > target_br * 1.5) {
-					var file = {filename: filename, res: {w: target_w, h: target_h}, duration: duration, convres: convres};
 					fileList.push(file);
 					++totalFiles;
 				} else {
@@ -135,13 +135,14 @@ if (!fs.lstatSync(inputDir).isFile()) {
 		var duration = meta.duration * 1000000;
 		var bitrate = meta.bit_rate;	// TODO: don't convert video with less than target.bitrate
 		var convres = false;
+		var file = {filename: filename, res: {w: target_w, h: target_h}
+			,duration: duration, orig: {w:meta.width, h: meta.height}, convres: convres};
+
 		if (meta.width > target_w && meta.height > target_h) {
-			convres = true;
-			var file = {filename: filename, duration: duration, convres: convres};
+			file.convres = true;
 			fileList.push(file);
 			++totalFiles;
 		} else if (bitrate > target_br * 1.5) {
-			var file = {filename: filename, duration: duration, convres: convres};
 			fileList.push(file);
 			++totalFiles;
 		} else {
