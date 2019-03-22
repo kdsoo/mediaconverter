@@ -44,7 +44,7 @@ var totalFiles = 0;
 // if arg is relative then make it absolute
 // now arg is absolute
 if (!path.isAbsolute(arg)) {
-	console.log(arg, "is not absolute");
+	console.log(arg, "is not absolute path");
 	// if arg is file then inputDir is cwd and arg is file
 	if (fs.lstatSync(path.join(process.cwd(), arg)).isFile()) {
 		inputDir = path.dirname(path.join(process.cwd(), arg));
@@ -54,7 +54,7 @@ if (!path.isAbsolute(arg)) {
 		arg = path.join(process.cwd(), arg);
 	}
 } else {
-	console.log(arg, "is absolute");
+	console.log(arg, "is absolute path");
 	// if arg is file then inputDir is parent and arg is file
 	// else arg is inputDir
 	if (fs.lstatSync(arg).isFile()) {
@@ -175,8 +175,6 @@ function getVideoMeta(file) {
 	var getres = spawnSync("ffprobe", options);
 	var meta = getres.stdout.toString();
 	meta = JSON.parse(meta);
-	console.log(file);
-	console.log(meta);
 	var json = meta.streams[0];
 	json.duration = meta.format.duration;
 	json.bit_rate = meta.format.bit_rate;
