@@ -50,7 +50,7 @@ if (!path.isAbsolute(arg)) {
 		inputDir = path.dirname(path.join(process.cwd(), arg));
 		arg = path.join(path.join(process.cwd(), arg));
 	} else {
-		inputDir = path.dirname(path.join(process.cwd(), arg));
+		inputDir = path.join(process.cwd(), arg);
 		arg = path.join(process.cwd(), arg);
 	}
 } else {
@@ -65,7 +65,7 @@ if (!path.isAbsolute(arg)) {
 }
 
 console.log("Media file repository inputDir:", inputDir);
-console.log("file or dir arg:", arg);
+console.log("file or dir arg:", arg, "isFile?", fs.lstatSync(arg).isFile());
 if (!fs.lstatSync(arg).isFile()) {
 	// arg is directory. directory scan
 	var files = fs.readdirSync(arg);
@@ -175,6 +175,8 @@ function getVideoMeta(file) {
 	var getres = spawnSync("ffprobe", options);
 	var meta = getres.stdout.toString();
 	meta = JSON.parse(meta);
+	console.log(file);
+	console.log(meta);
 	var json = meta.streams[0];
 	json.duration = meta.format.duration;
 	json.bit_rate = meta.format.bit_rate;
