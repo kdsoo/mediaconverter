@@ -44,26 +44,31 @@ var totalFiles = 0;
 // if arg is relative then make it absolute
 // now arg is absolute
 if (!path.isAbsolute(arg)) {
+	console.log(arg, "is not absolute");
 	// if arg is file then inputDir is cwd and arg is file
 	if (fs.lstatSync(path.join(process.cwd(), arg)).isFile()) {
-		inputDir = process.cwd();
+		inputDir = path.dirname(path.join(process.cwd(), arg));
+		arg = path.join(path.join(process.cwd(), arg));
 	} else {
-		inputDir = path.join(process.cwd(), arg);
+		inputDir = path.dirname(path.join(process.cwd(), arg));
+		arg = path.join(process.cwd(), arg);
 	}
 } else {
+	console.log(arg, "is absolute");
 	// if arg is file then inputDir is parent and arg is file
 	// else arg is inputDir
 	if (fs.lstatSync(arg).isFile()) {
 		inputDir = path.dirname(arg);
-		arg = path.basename(arg);
 	} else {
 		inputDir = arg;
 	}
 }
 
-console.log("Media file repository:", inputDir);
-if (!fs.lstatSync(inputDir).isFile()) {
-	var files = fs.readdirSync(inputDir);
+console.log("Media file repository inputDir:", inputDir);
+console.log("file or dir arg:", arg);
+if (!fs.lstatSync(arg).isFile()) {
+	// arg is directory. directory scan
+	var files = fs.readdirSync(arg);
 	for (var i = 0; i < files.length; i ++) {
 		if (isMediaFile(files[i])) {
 			// var file = {filename:filename, duration: duration, convres: convres};
@@ -129,8 +134,9 @@ if (!fs.lstatSync(inputDir).isFile()) {
 	console.log("Media files to be converted:", fileList);
 } else {
 	if (isMediaFile(arg)) {
+		console.log(arg, "is individual file");
 		// var file = {filename:filename, duration: duration, convres: convres};
-		var filename = path.join(inputDir, arg);
+		var filename = arg;
 		var meta = getVideoMeta(filename);
 		var duration = meta.duration * 1000000;
 		var bitrate = meta.bit_rate;	// TODO: don't convert video with less than target.bitrate
@@ -153,6 +159,7 @@ if (!fs.lstatSync(inputDir).isFile()) {
 		console.error("Not proper to be converted");
 		process.exit();
 	}
+	console.log("Media file to be converted:", fileList);
 }
 
 if (fileList.length > 0) {
@@ -239,7 +246,7 @@ function processVideo(file, w, h, duration, convres, cb) {
 
 function isMediaFile(name) {
 	var ret = false;
-	if (fs.lstatSync(path.join(inputDir, name)).isFile()) {
+	if (fs.lstatSync(name).isFile()) {
 		var extList = source_formats;
 		// .toUpperCase()
 		var nameSplit = name.split(".");
@@ -364,6 +371,8 @@ function needUpdate(remote_tag) {
 	return needUpdate;
 }
 
+// 					var version = getCurrentVersion();
+//					updateVersionFile(cachedVersionFile, version);
 function updateVersion() {
 	if (isVersionCacheExpired()) {
 		getReleaseMeta(releaseUrl, function(code, meta) {
@@ -391,6 +400,7 @@ function updateVersion() {
 					});
 				} else {
 					// No need to update but refresh version file
+					console.log("No available update, just refresh version cache file");
 					var version = getCurrentVersion();
 					updateVersionFile(cachedVersionFile, version);
 				}
