@@ -411,7 +411,7 @@ function getFileUpdateDate(path) {
 	var ret = false;
 	if (fs.existsSync(path)) {
 		stats = fs.statSync(path);
-		ret  stats.mtime;
+		ret = stats.mtime;
 	}
 	return ret;
 }
