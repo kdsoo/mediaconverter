@@ -210,7 +210,7 @@ function processVideo(file, w, h, duration, convres, cb) {
 		if (l.search("out_time_ms=") > -1) {
 			var out_time_ms = Number(l.split("=")[1]);
 			while (barTick/progressTotal < out_time_ms/duration) {
-				bar.tick(1, {title: file});
+				bar.tick(1, {title: path.basename(file)});
 				++barTick;
 			}
 		}
