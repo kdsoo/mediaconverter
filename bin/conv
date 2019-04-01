@@ -32,9 +32,21 @@ var target_name_tail = config.get("target.filename_tail");
 var target_name_ext = config.get("target.mediaformat");		// file type to be converted
 var removeoriginal = config.get("removeoriginal");
 
-if (process.argv.length !== 3) {
+var keepOrig = false;
+if (process.argv.length < 3) {
 	console.error(process.argv.length, process.argv);
 	process.exit(1)
+} else if (process.argv.length == 4) {
+	if (process.argv.indexOf("-k") > -1) {
+		var index = process.argv.indexOf("-k");
+		process.argv.splice(index, 1);
+		console.log("Keep original media file");
+		keepOrig = true;
+	} else {
+		console.error("Supported options");
+		console.error("\t-k: keep original media file option");
+		process.exit(1);
+	}
 }
 var arg = process.argv[2]
 var inputDir;
@@ -262,7 +274,7 @@ function isMediaFile(name) {
 }
 
 function removeOriginal(name) {
-	if (removeoriginal) {
+	if (removeoriginal && keepOrig == false) {
 		try {
 			fs.unlinkSync(name);
 		} catch(e) {
