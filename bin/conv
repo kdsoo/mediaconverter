@@ -200,9 +200,9 @@ function processVideo(file, w, h, duration, convres, cb) {
 	namearr[namearr.length -1] = target_name_ext;
 	var output = namearr.join(".");
 	if (convres) {
-		options = ["-i", file, "-vf", "scale=" + w + ":" + h, "-b:v", target_br, "-progress", "-", output];
+		options = ["-i", file, "-vf", "scale=" + w + ":" + h, "-b:v", target_br, "-max_muxing_queue_size", 4096, "-progress", "-", output];
 	} else {
-		options = ["-i", file, "-b:v", target_br, "-progress", "-", output];
+		options = ["-i", file, "-b:v", "-max_muxing_queue_size", 4096, target_br, "-progress", "-", output];
 	}
 
 	if (fs.existsSync(output)) {
