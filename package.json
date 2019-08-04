@@ -7,6 +7,9 @@
   },
   "dependencies": {
     "progress": "*",
-    "config": "*"
+    "config": "*",
+    "uuid-1345": "*",
+    "request": "*",
+    "pushbullet": "*"
   }
 }

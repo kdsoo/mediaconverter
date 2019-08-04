@@ -1,4 +1,8 @@
 #!/usr/bin/env node
+var events = require('../services/localEvent');
+var pushbullet = require('../services/pushbullet');
+var telegram = require('../services/telegram');
+
 var path = require("path");
 process.env['NODE_CONFIG_DIR'] = path.join(__dirname, "..", "config");
 var gitdir = path.join(__dirname, "..", ".git");
@@ -243,14 +247,24 @@ function processVideo(file, w, h, duration, convres, cb) {
 		console.log("\n", file, "conversion done with:", code);
 		if (code === 0) {
 			removeOriginal(file);
+			// Notify user
+			serviceEvent.emit("telegram", {cmd: "MESSAGE", payload: {msg: file + " conversion successfully done", disablenoti: false}});
+			serviceEvent.emit("pushbullet", {cmd: "PUSH", payload: {title: "file conversion done", msg: file + " conversion successfully done"}});
 		} else {
 			console.error(file, "conversion aborted with error code:", code);
+			// Notify user
+			serviceEvent.emit("telegram", {cmd: "MESSAGE", payload: {msg: file + " conversion failed", disablenoti: false}});
+			serviceEvent.emit("pushbullet", {cmd: "PUSH", payload: {title: "file conversion failed", msg: file + " conversion failed"}});
 		}
 		--totalFiles;
+
 		if (totalFiles == 0) {
 			console.log("#############################################");
 			console.log("All files converted");
 			console.log("#############################################");
+			// Notify user
+			serviceEvent.emit("telegram", {cmd: "MESSAGE", payload: {msg: "All files converted", disablenoti: false}});
+			serviceEvent.emit("pushbullet", {cmd: "PUSH", payload: {title: "All files converted", msg: "All files converted"}});
 		}
 		if (cb) cb(true);
 	});
