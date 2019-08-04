@@ -12,7 +12,6 @@ getPushDevices(function(e,r) {
 	if(e) {
 		console.error(e);
 	} else {
-		console.log(r);
 		console.log("Pushbullet initialized");
 	}
 });
@@ -23,7 +22,7 @@ function getPushDevices(cb) {
 			cb(error, null);
 		} else {
 			response.devices.forEach(function(d, i) {
-				console.log("pushbullet registered devices: " + d.nickname);
+				//console.log("pushbullet registered devices: " + d.nickname);
 			});
 			allDevices = response.devices;
 			cb(null, response);
@@ -43,7 +42,9 @@ pusher.devices(function(error, response) {
 	// response is the JSON response from the API
 	//console.log(response);
 });
-pusher.me(function(err, response) {console.log(response);});
+pusher.me(function(err, response) {
+	//console.log(response);
+});
 
 function pushToAll(title, msg) {
 	// pushbullet

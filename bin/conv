@@ -1,10 +1,12 @@
 #!/usr/bin/env node
+
+var path = require("path");
+process.env['NODE_CONFIG_DIR'] = path.join(__dirname, "..", "config");
+
 var events = require('../services/localEvent');
 var pushbullet = require('../services/pushbullet');
 var telegram = require('../services/telegram');
 
-var path = require("path");
-process.env['NODE_CONFIG_DIR'] = path.join(__dirname, "..", "config");
 var gitdir = path.join(__dirname, "..", ".git");
 var gitworktree = path.join(__dirname, "..");
 
