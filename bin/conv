@@ -58,6 +58,7 @@ var arg = process.argv[2]
 var inputDir;
 var fileList = [];
 var totalFiles = 0;
+var isBatch = false;
 
 // if arg is relative then make it absolute
 // now arg is absolute
@@ -149,6 +150,7 @@ if (!fs.lstatSync(arg).isFile()) {
 			}
 		}
 	}
+	if (fileList.length > 1) isBatch = true;
 	console.log("Media files to be converted:", fileList);
 } else {
 	if (isMediaFile(arg)) {
@@ -246,28 +248,30 @@ function processVideo(file, w, h, duration, convres, cb) {
 	});
 	conv.on('exit', function(code){
 		line.close();
+		--totalFiles;
 		console.log("\n", file, "conversion done with:", code);
 		if (code === 0) {
 			removeOriginal(file);
 			// Notify user
-			serviceEvent.emit("telegram", {cmd: "MESSAGE", payload: {msg: file + " conversion successfully done", disablenoti: false}});
-			serviceEvent.emit("pushbullet", {cmd: "PUSH", payload: {title: "file conversion done", msg: file + " conversion successfully done"}});
+			var title;
+			if (isBatch == false || (totalFiles == 0 && isBatch == true)) {
+				title = "All files converted";
+				console.log("#############################################");
+				console.log("All files converted");
+				console.log("#############################################");
+			} else {
+				title = "File conversion done";
+			}
+			var msg = file + " conversion successfully done";
+			serviceEvent.emit("telegram", {cmd: "MESSAGE", payload: {msg: msg, disablenoti: false}});
+			serviceEvent.emit("pushbullet", {cmd: "PUSH", payload: {title: title, msg: msg}});
 		} else {
 			console.error(file, "conversion aborted with error code:", code);
 			// Notify user
 			serviceEvent.emit("telegram", {cmd: "MESSAGE", payload: {msg: file + " conversion failed", disablenoti: false}});
 			serviceEvent.emit("pushbullet", {cmd: "PUSH", payload: {title: "file conversion failed", msg: file + " conversion failed"}});
 		}
-		--totalFiles;
 
-		if (totalFiles == 0) {
-			console.log("#############################################");
-			console.log("All files converted");
-			console.log("#############################################");
-			// Notify user
-			serviceEvent.emit("telegram", {cmd: "MESSAGE", payload: {msg: "All files converted", disablenoti: false}});
-			serviceEvent.emit("pushbullet", {cmd: "PUSH", payload: {title: "All files converted", msg: "All files converted"}});
-		}
 		if (cb) cb(true);
 	});
 }
