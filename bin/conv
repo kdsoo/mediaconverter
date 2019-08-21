@@ -191,9 +191,10 @@ if (fileList.length > 0) {
 }
 
 function msecToTime(msec) {
-    var hours = Math.floor(msec / (60 * 60));
+		var sec = msec / 1000000;
+    var hours = Math.floor(sec / (60 * 60));
 
-    var divisor_for_minutes = msec % (60 * 60);
+    var divisor_for_minutes = sec % (60 * 60);
     var minutes = Math.floor(divisor_for_minutes / 60);
 
     var divisor_for_seconds = divisor_for_minutes % 60;
