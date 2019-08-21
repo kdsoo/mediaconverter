@@ -97,7 +97,7 @@ if (!fs.lstatSync(arg).isFile()) {
 			var bitrate = meta.bit_rate;	// TODO: don't convert video with less than target.bitrate
 			var convres = false;
 			var file = {filename: filename, res: {w: -1, h: -1}
-						, duration: duration, orig: {w:meta.width, h: meta.height}, convres: convres};
+						, duration: duration, orig: {w:meta.width, h: meta.height}, convres: convres, length: msecToTime(duration)};
 			// if target_max_length is set
 			// then if meta.width > meta.height
 			//         then target_res_width = target_max_length
@@ -188,6 +188,23 @@ if (fileList.length > 0) {
 			console.error(err);
 		}
 	});
+}
+
+function msecToTime(msec) {
+    var hours = Math.floor(msec / (60 * 60));
+
+    var divisor_for_minutes = msec % (60 * 60);
+    var minutes = Math.floor(divisor_for_minutes / 60);
+
+    var divisor_for_seconds = divisor_for_minutes % 60;
+    var seconds = Math.ceil(divisor_for_seconds);
+
+    var obj = {
+        "h": hours,
+        "m": minutes,
+        "s": seconds
+    };
+    return obj;
 }
 
 function getVideoMeta(file) {
