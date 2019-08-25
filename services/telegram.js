@@ -113,7 +113,6 @@ serviceEvent.on('telegram', function(msg) {
 		if (typeof(msg) == "string") msg = JSON.parse(msg);
 
 		if (!msg.res && msg.cmd) {
-			console.log(msg);
 			switch (msg.cmd) {
 				case "MESSAGE":
 					if (telegram_enabled) {

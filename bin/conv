@@ -93,31 +93,14 @@ if (!fs.lstatSync(arg).isFile()) {
 			// var file = {filename:filename, duration: duration, convres: convres};
 			var meta = getVideoMeta(path.join(inputDir, files[i]));
 			var filename = path.join(inputDir, files[i]);
-			var fileBsize = fs.statSync(filename).size;
-			var fileKsize = fileBsize / Math.pow(1024, 1);
-			var fileMsize = fileBsize / Math.pow(1024, 2);
-			var fileGsize = fileBsize / Math.pow(1024, 3);
-			var sizeUnit = "";
-			var filesize = 0;
-			if (fileBsize > 1024) {
-				filesize = fileKsize;
-				sizeUnit = "KB";
-			}
-			if (fileKsize > 1024) {
-				filesize = fileMsize;
-				sizeUnit = "MB";
-			}
-			if (fileMsize > 1024) {
-				filesize = fileGsize;
-				sizeUnit = "GB";
-			}
+			var filesize = getFSize(filename);
 			var duration = meta.duration * 1000000;
 			var bitrate = meta.bit_rate;	// TODO: don't convert video with less than target.bitrate
 			var convres = false;
 			var file = {filename: filename, res: {w: -1, h: -1}
 						, duration: duration, orig: {w:meta.width, h: meta.height}
 						, convres: convres, length: msecToTime(duration)
-						, filesize: filesize.toFixed(3) + " " + sizeUnit};
+						, filesize: filesize.size + " " + filesize.unit};
 			// if target_max_length is set
 			// then if meta.width > meta.height
 			//         then target_res_width = target_max_length
@@ -210,6 +193,25 @@ if (fileList.length > 0) {
 	});
 }
 
+function getFSize(path) {
+	var unit = "Bytes";
+	var size = fs.statSync(path).size;
+
+	if (size > 1024) {
+		size = size / Math.pow(1024, 1);
+		unit = "KB";
+	}
+	if (size > 1024) {
+		size = size / Math.pow(1024, 1);
+		unit = "MB";
+	}
+	if (size > 1024) {
+		size = size /Math.pow(1024, 1);
+		unit = "GB";
+	}
+	return {path: path, size: size.toFixed(3), unit: unit};
+}
+
 function msecToTime(msec) {
 		var sec = msec / 1000000;
     var hours = Math.floor(sec / (60 * 60));
@@ -289,6 +291,9 @@ function processVideo(file, w, h, duration, convres, cb) {
 		--totalFiles;
 		console.log("\n", file, "conversion done with:", code);
 		if (code === 0) {
+			var origSize = getFSize(file);
+			var targetSize = getFSize(output);
+			console.log("file size shrinked from", origSize.size, origSize.unit, "to", targetSize.size, targetSize.unit);
 			removeOriginal(file);
 			// Notify user
 			var title;
@@ -300,7 +305,8 @@ function processVideo(file, w, h, duration, convres, cb) {
 			} else {
 				title = "File conversion done";
 			}
-			var msg = file + " conversion successfully done";
+			var msg = file + " conversion successfully done. file size shrinked from "
+				+ origSize.size + origSize.unit + " to " + targetSize.size + targetSize.unit;
 			serviceEvent.emit("telegram", {cmd: "MESSAGE", payload: {msg: msg, disablenoti: false}});
 			serviceEvent.emit("pushbullet", {cmd: "PUSH", payload: {title: title, msg: msg}});
 		} else {
