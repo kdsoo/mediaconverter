@@ -34,6 +34,29 @@ function sendTelegram(msg, cb) {
 }
 module.exports.sendTelegram = sendTelegram;
 
+function sendTelegramPOST(msg, disablenoti, callback) {
+	var NoNoti = "false";
+	if (disablenoti === "true") NoNoti = "true";
+	var formData = {
+		chat_id: telegram_admin,
+		disable_notification: NoNoti,
+		text: msg
+	};
+	request.post({url:telegram_endpoint + telegram_apikey + "/sendMessage", formData: formData}, function(err, httpResponse, body){
+		if (err) {
+			console.error(err);
+			callback(err, null);
+		} else {
+			console.log(body);
+			body = JSON.parse(body);
+			if (body.ok == true) {
+				// do something
+			}
+			callback(null, body);
+		}
+	});
+}
+module.exports.sendTelegramPOST = sendTelegramPOST;
 
 function sendTelegramImage(img, cam, text, type, disablenoti, callback) {
 	var NoNoti = "false";
@@ -117,7 +140,7 @@ serviceEvent.on('telegram', function(msg) {
 				case "MESSAGE":
 					if (telegram_enabled) {
 						console.log("send telegram message");
-						sendTelegram(msg.payload.msg,  function(e,r,b) {
+						sendTelegramPOST(msg.payload.msg, msg.payload.disablenoti, function(e,r,b) {
 						});
 					}
 					break;
