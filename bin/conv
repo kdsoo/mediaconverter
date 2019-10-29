@@ -39,20 +39,28 @@ var target_name_ext = config.get("target.mediaformat");		// file type to be conv
 var removeoriginal = config.get("removeoriginal");
 
 var keepOrig = false;
+var FORCED = false;
 if (process.argv.length < 3) {
 	console.error(process.argv.length, process.argv);
 	process.exit(1)
-} else if (process.argv.length == 4) {
+//} else if (process.argv.length == 4) {
+} else {
 	if (process.argv.indexOf("-k") > -1) {
 		var index = process.argv.indexOf("-k");
 		process.argv.splice(index, 1);
 		console.log("Keep original media file");
 		keepOrig = true;
-	} else {
+	} else if (process.argv.indexOf("-f") > -1) {
+		console.log("Force to encode every media files");
+		FORCED = true;
+	}
+	/*
+	else {
 		console.error("Supported options");
 		console.error("\t-k: keep original media file option");
 		process.exit(1);
 	}
+	*/
 }
 var arg = process.argv[2]
 var inputDir;
@@ -117,6 +125,9 @@ if (!fs.lstatSync(arg).isFile()) {
 						// only cares bitrate (convres = false)
 						fileList.push(file);
 						++totalFiles;
+					} else if (FORCED == true) {
+						fileList.push(file);
+						++totalFiles;
 					} else {
 						console.error(filename, "with resolution", meta.width, meta.height
 						, "and bitrate", bitrate, "no need to be converted");
@@ -129,6 +140,9 @@ if (!fs.lstatSync(arg).isFile()) {
 						++totalFiles;
 					} else if (bitrate > target_br * 1.5) {
 						// only cares bitrate (convres = false)
+						fileList.push(file);
+						++totalFiles;
+					} else if (FORCED == true) {
 						fileList.push(file);
 						++totalFiles;
 					} else {
@@ -144,6 +158,9 @@ if (!fs.lstatSync(arg).isFile()) {
 					fileList.push(file);
 					++totalFiles;
 				} else if (bitrate > target_br * 1.5) {
+					fileList.push(file);
+					++totalFiles;
+				} else if (FORCED == true) {
 					fileList.push(file);
 					++totalFiles;
 				} else {
@@ -172,6 +189,12 @@ if (!fs.lstatSync(arg).isFile()) {
 			fileList.push(file);
 			++totalFiles;
 		} else if (bitrate > target_br * 1.5) {
+			fileList.push(file);
+			++totalFiles;
+		} else if (FORCED == true) {
+			// don't work with resolution
+			file.res.w = meta.width;
+			file.res.h = meta.height;
 			fileList.push(file);
 			++totalFiles;
 		} else {
