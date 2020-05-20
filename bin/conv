@@ -97,7 +97,7 @@ if (!fs.lstatSync(arg).isFile()) {
 	// arg is directory. directory scan
 	var files = fs.readdirSync(arg);
 	for (var i = 0; i < files.length; i ++) {
-		if (isMediaFile(files[i])) {
+		if (isMediaFile(path.join(inputDir, files[i]))) {
 			// var file = {filename:filename, duration: duration, convres: convres};
 			var meta = getVideoMeta(path.join(inputDir, files[i]));
 			var filename = path.join(inputDir, files[i]);
